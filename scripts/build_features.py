@@ -26,7 +26,7 @@ def load_subject(subject_id, data_root):
 def process_subject(subject_id):
     d = load_subject(subject_id, DATA_ROOT)
     bvp = d["signal"]["wrist"]["BVP"].flatten()
-    acc = d["signal"]["wrist"]["ACC"] / 64.0  # raw units -> g
+    acc = d["signal"]["wrist"]["ACC"]  # already in g units - see src/data_loader.py
     hr_label = d["label"].flatten()
     activity = d["activity"].flatten()
     bvp_filtered = preprocess_ppg(bvp, fs=FS_BVP)
