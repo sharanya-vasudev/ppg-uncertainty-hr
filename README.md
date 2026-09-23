@@ -12,11 +12,11 @@ uncertainty?
 ## Dataset
 [PPG-DaLiA](https://archive.ics.uci.edu/dataset/495/ppg+dalia) (UCI Machine Learning
 Repository) — 15 subjects, synchronized wrist PPG/BVP (64 Hz), wrist accelerometer
-(32 Hz), chest ECG-derived ground-truth HR (8s windows, 2s shift), 8 daily-life
-activities. **Not included in this repo** (~2.7 GB, licensed separately) — see
-`data/README.md` for download instructions.
+(32 Hz, g units), chest ECG-derived ground-truth HR (8s windows, 2s shift), 8
+daily-life activities. **Not included in this repo** (~2.7 GB, licensed separately)
+— see `data/README.md` for download instructions.
 
-## Status: Phases 0-4 complete
+## Status: Phases 0-5 complete
 
 **Phase 0 — Environment & structure.** Python 3.11 virtual environment, project
 structure, dependency tracking.
@@ -43,28 +43,35 @@ evaluated across all 15 subjects (~65,000 windows):
 **Phase 4 — Motion artifact analysis.** Quantified the relationship between
 accelerometer-derived motion features and HR error across all subjects:
 - Accelerometer RMS magnitude shows a threshold-like relationship with error,
-  not a smooth linear one
+  not a smooth linear one (resting baseline ~1.0g, per Earth's gravity)
 - PPG signal-quality index (SQI) correlates with error, but most of the benefit
   is concentrated in the top ~20% of the quality range
 - Raw motion-magnitude features correlate with error more strongly than
   cardiac-band-specific motion overlap
 - Findings validated at the subject level, not just pooled across all windows
 
+**Phase 5 — Feature engineering.** Built a 20-feature table (PPG + accelerometer)
+for all 15 subjects, aligned 1:1 with PPG-DaLiA's own 8s/2s ground-truth HR
+windows. See `docs/feature_dictionary.md` for full feature definitions,
+windowing convention, and normalization/missing-data policy. Output:
+`data/processed/ppg_acc_features_all_subjects.csv` (64,697 rows x 24 columns).
+
+### Correction (post-Phase 5)
+Discovered and fixed a units bug present since Phase 1: wrist accelerometer data
+inside `SX.pkl` is already in g units, but code had applied an extra `/64`
+conversion (intended for a different raw file in the dataset, not this one),
+shrinking all accelerometer magnitude values by 64x. Ratio-based features and
+all correlation coefficients were mathematically unaffected by this (confirmed
+by exact reproduction of Phase 4's correlation values after the fix); absolute
+magnitude values and plots have been corrected and regenerated. Subject loading
+is now centralized in `src/data_loader.py` to prevent recurrence.
+
 ### Upcoming
-Phase 5 (feature engineering) -> Phase 6 (sensor fusion baselines) -> uncertainty
-quantification (Gaussian Processes, quantile regression, conformal prediction) ->
-calibration -> final evaluation -> paper.
+Phase 6 (sensor fusion baselines: PPG-only vs ACC-only vs PPG+ACC, subject-aware
+splitting) -> uncertainty quantification (Gaussian Processes, quantile
+regression, conformal prediction) -> calibration -> final evaluation -> paper.
 
 ## Repository Structure
-ppg-uncertainty-hr/
-├── data/ # raw/processed data (gitignored, see data/README.md)
-├── notebooks/ # exploratory notebooks, one per phase
-├── src/ # reusable, tested modules
-├── scripts/ # one-off analysis scripts
-├── results/
-│ ├── figures/ # saved plots
-│ └── metrics/ # saved numerical results (csv/npz)
-└── paper/ # manuscript notes
 
 ## Setup
 ```bash
