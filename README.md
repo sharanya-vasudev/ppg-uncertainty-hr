@@ -42,8 +42,9 @@ evaluated across all 15 subjects (~65,000 windows):
 
 **Phase 4 — Motion artifact analysis.** Quantified the relationship between
 accelerometer-derived motion features and HR error across all subjects:
-- Accelerometer RMS magnitude shows a threshold-like relationship with error,
-  not a smooth linear one (resting baseline ~1.0g, per Earth's gravity)
+- Accelerometer RMS magnitude shows a threshold-like relationship with error:
+  mean error stays under ~13 BPM below ~1.02g RMS (near-resting), rises sharply
+  through 1.02-1.06g, and plateaus around 28-33 BPM above ~1.15g
 - PPG signal-quality index (SQI) correlates with error, but most of the benefit
   is concentrated in the top ~20% of the quality range
 - Raw motion-magnitude features correlate with error more strongly than
