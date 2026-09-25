@@ -67,10 +67,29 @@ by exact reproduction of Phase 4's correlation values after the fix); absolute
 magnitude values and plots have been corrected and regenerated. Subject loading
 is now centralized in `src/data_loader.py` to prevent recurrence.
 
+**Phase 6 — Sensor fusion baselines.** Trained Ridge, Random Forest, and
+Gradient Boosting with Leave-One-Subject-Out CV comparing PPG-only, ACC-only,
+and PPG+ACC feature sets:
+- All ML models substantially beat Phase 3's spectral baseline (best: PPG-only
+  Random Forest, MAE 9.25 BPM vs Phase 3's 18.33 BPM)
+- ACC-only alone reaches ~15-16 BPM MAE - real signal, but likely reflects a
+  population-level exercise-intensity-to-HR association rather than true
+  cardiac information
+- PPG+ACC fusion shows no clear aggregate benefit over PPG-only once a
+  confound (the large, heterogeneous "transient" activity category) is
+  accounted for - but reveals a real, activity-dependent pattern instead:
+  fusion modestly helps during steady-state/homogeneous motion (sitting,
+  cycling, driving, lunch, working) and consistently hurts during
+  heterogeneous/transitional motion (stairs, table soccer, walking,
+  transients), a pattern consistent across both tree-based models
+- Likely explanation (untested): whole-window accelerometer summary
+  statistics represent internally heterogeneous motion windows poorly
+
 ### Upcoming
-Phase 6 (sensor fusion baselines: PPG-only vs ACC-only vs PPG+ACC, subject-aware
-splitting) -> uncertainty quantification (Gaussian Processes, quantile
-regression, conformal prediction) -> calibration -> final evaluation -> paper.
+Phase 7 (branch/interaction fusion architecture, motivated directly by
+Phase 6's activity-dependent pattern) -> uncertainty quantification (Gaussian
+Processes, quantile regression, conformal prediction) -> calibration -> final
+evaluation -> paper.
 
 ## Repository Structure
 

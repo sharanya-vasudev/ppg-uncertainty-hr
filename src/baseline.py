@@ -39,4 +39,5 @@ def estimate_hr_spectral_interpolated(ppg_window: np.ndarray, fs: float,
     denom = alpha - 2 * beta + gamma
     p = 0.0 if denom == 0 else 0.5 * (alpha - gamma) / denom
     bin_width = freqs[1] - freqs[0]
-    return (freqs[peak_idx] + p * bin_width) * 60.0
+    interpolated_freq = np.clip(freqs[peak_idx] + p * bin_width, low_hz, high_hz)
+    return interpolated_freq * 60.0
