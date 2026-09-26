@@ -10,3 +10,5 @@ models/*.pt
 models/*.pkl
 .DS_Store
 *.egg-info/
+results/metrics/predictions/*
+!results/metrics/predictions/.gitkeep
