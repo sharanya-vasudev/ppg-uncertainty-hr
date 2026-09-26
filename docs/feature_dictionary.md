@@ -47,3 +47,36 @@ distinction using the accelerometer features alongside them.
 ## Source
 `src/feature_extraction.py`, built via `scripts/build_features.py`.
 Output: `data/processed/ppg_acc_features_all_subjects.csv` (64,697 rows x 24 columns).
+
+## Phase 6 update: finalized ACC feature set
+
+Feature importance analysis plus a controlled comparison found that the raw
+per-axis accelerometer means (`acc_mean_ax`, `acc_mean_ay`, `acc_mean_az`)
+primarily encode static wrist orientation - how an individual happens to wear
+the device - rather than genuine motion dynamics. This let models partly
+overfit to training-subject-specific device orientation, which does not
+generalize to held-out subjects (the failure mode Leave-One-Subject-Out CV is
+designed to catch).
+
+**Removing these three features reversed the fusion result**: PPG+ACC went
+from underperforming PPG-only (Random Forest: 9.25 -> 9.85 BPM MAE) to
+beating it (9.25 -> 8.91 BPM), replicated with Gradient Boosting
+(9.41 -> 9.08 BPM). The improvement concentrated exactly in the activities
+most affected by orientation instability (stairs, walking), consistent with
+the proposed mechanism.
+
+`acc_mean_mag` is kept (orientation-invariant). Official ACC feature set,
+final feature lists, and the chosen model are defined in `src/config.py`.
+
+Two engineered heterogeneity features (sub-window RMS std/range) were also
+tested and found to have negligible importance and no measurable effect -
+not included in the final set.
+
+**Caveat:** the improvement is a real average effect (replicated across two
+model families) but not universal at the subject level - 12/15 subjects
+improved with Random Forest, 9/15 with Gradient Boosting, with 2 subjects
+showing consistent degradation. Formal statistical testing is deferred to
+Phase 16.
+
+**Official Phase 6 model: Random Forest, PPG + dynamic-ACC features, MAE
+8.91 BPM pooled / 9.02 BPM macro.**

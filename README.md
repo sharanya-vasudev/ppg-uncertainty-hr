@@ -70,26 +70,41 @@ is now centralized in `src/data_loader.py` to prevent recurrence.
 **Phase 6 — Sensor fusion baselines.** Trained Ridge, Random Forest, and
 Gradient Boosting with Leave-One-Subject-Out CV comparing PPG-only, ACC-only,
 and PPG+ACC feature sets:
-- All ML models substantially beat Phase 3's spectral baseline (best: PPG-only
-  Random Forest, MAE 9.25 BPM vs Phase 3's 18.33 BPM)
+- All ML models substantially beat Phase 3's spectral baseline (best:
+  PPG-only Random Forest, MAE 9.25 BPM vs Phase 3's 18.33 BPM)
 - ACC-only alone reaches ~15-16 BPM MAE - real signal, but likely reflects a
   population-level exercise-intensity-to-HR association rather than true
   cardiac information
-- PPG+ACC fusion shows no clear aggregate benefit over PPG-only once a
-  confound (the large, heterogeneous "transient" activity category) is
-  accounted for - but reveals a real, activity-dependent pattern instead:
-  fusion modestly helps during steady-state/homogeneous motion (sitting,
-  cycling, driving, lunch, working) and consistently hurts during
-  heterogeneous/transitional motion (stairs, table soccer, walking,
-  transients), a pattern consistent across both tree-based models
-- Likely explanation (untested): whole-window accelerometer summary
-  statistics represent internally heterogeneous motion windows poorly
+- Initial PPG+ACC fusion (all accelerometer features) underperformed
+  PPG-only. Root-cause investigation found raw per-axis accelerometer means
+  (acc_mean_ax/ay/az) encode static wrist orientation - a person/device-fit
+  specific artifact, not motion - causing overfitting that does not
+  generalize across subjects
+- Removing these orientation features and keeping only dynamic ACC features
+  (magnitude/frequency/cardiac-band statistics) REVERSED the result: fusion
+  now beats PPG-only, replicated across both tree-based models (Random
+  Forest: 9.25 -> 8.91 BPM; Gradient Boosting: 9.41 -> 9.08 BPM MAE)
+- The improvement concentrates exactly in the activities most affected by
+  orientation instability - stairs (delta +1.06 -> -1.29 BPM) and walking
+  (+2.04 -> -0.08 BPM) - strong mechanistic confirmation of the diagnosis
+- Caveat: a real average improvement, but not universal - 12/15 subjects
+  improved with Random Forest, 9/15 with Gradient Boosting; formal
+  significance testing deferred to Phase 16 per the project's phased design
+
+**Official Phase 6 model: Random Forest, PPG + dynamic-ACC features (see
+`src/config.py`), MAE 8.91 BPM pooled / 9.02 BPM macro.**
+
+**Decision: Phase 7 (neural network) skipped as not currently justified.**
+Per the brief's own criterion ("only after classical models work, investigate
+a neural network if justified"), a diagnosed, mechanistically-explained
+feature fix already produced a genuine fusion improvement with simple
+classical models - no current evidence the bottleneck is model capacity
+rather than feature design.
 
 ### Upcoming
-Phase 7 (branch/interaction fusion architecture, motivated directly by
-Phase 6's activity-dependent pattern) -> uncertainty quantification (Gaussian
-Processes, quantile regression, conformal prediction) -> calibration -> final
-evaluation -> paper.
+Phase 8 (uncertainty quantification: Gaussian Processes, quantile
+regression, conformal prediction) -> calibration -> motion-specific
+evaluation -> final evaluation -> paper.
 
 ## Repository Structure
 

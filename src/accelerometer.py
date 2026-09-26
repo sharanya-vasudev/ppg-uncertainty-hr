@@ -14,13 +14,9 @@ def acc_magnitude(acc_xyz: np.ndarray) -> np.ndarray:
 
 def motion_features(acc_window_xyz: np.ndarray, fs: float,
                      cardiac_low_hz: float = 0.5, cardiac_high_hz: float = 4.0) -> dict:
-    """Compute motion-intensity descriptors for one accelerometer window.
-
-    acc_window_xyz : (n_samples, 3) array, in g units (already /64 from raw).
-    fs : accelerometer sampling frequency (Hz).
-    """
+    """Whole-window motion-intensity descriptors (Phase 4)."""
     mag = acc_magnitude(acc_window_xyz)
-    mag_centered = mag - mag.mean()  # remove gravity/DC before spectral analysis
+    mag_centered = mag - mag.mean()
 
     n = len(mag_centered)
     freqs = rfftfreq(n, d=1 / fs)
@@ -40,4 +36,32 @@ def motion_features(acc_window_xyz: np.ndarray, fs: float,
         "rms_mag": float(np.sqrt((mag ** 2).mean())),
         "dominant_freq_hz": float(dominant_freq),
         "cardiac_band_energy_frac": float(cardiac_band_energy_frac),
+    }
+
+
+def motion_heterogeneity_features(acc_window_xyz: np.ndarray, n_subwindows: int = 4) -> dict:
+    """Measure how much motion intensity varies WITHIN an 8s window, by
+    splitting it into sub-windows and computing RMS magnitude per sub-window.
+
+    Motivated directly by Phase 6's finding: whole-window ACC summary stats
+    seem to poorly represent activities with internal motion heterogeneity
+    (stairs, table_soccer, walking, transients) while representing steady
+    motion (cycling, sitting) well. This feature makes that heterogeneity
+    explicit and measurable, rather than leaving the model to infer it
+    indirectly from a single whole-window number.
+    """
+    n = len(acc_window_xyz)
+    sub_len = n // n_subwindows
+    sub_rms = []
+    for i in range(n_subwindows):
+        start = i * sub_len
+        end = start + sub_len if i < n_subwindows - 1 else n
+        sub = acc_window_xyz[start:end]
+        mag = acc_magnitude(sub)
+        sub_rms.append(np.sqrt((mag ** 2).mean()))
+    sub_rms = np.array(sub_rms)
+
+    return {
+        "acc_subwin_rms_std": float(sub_rms.std()),
+        "acc_subwin_rms_range": float(sub_rms.max() - sub_rms.min()),
     }

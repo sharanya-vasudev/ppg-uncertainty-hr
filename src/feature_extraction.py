@@ -85,3 +85,13 @@ def extract_features(bvp_raw_window: np.ndarray, bvp_filtered_window: np.ndarray
         features[f"acc_std_{name}"] = float(acc_window_g[:, i].std())
 
     return features
+
+
+def extract_features_with_heterogeneity(bvp_raw_window, bvp_filtered_window,
+                                          acc_window_g, fs_bvp, fs_acc) -> dict:
+    """Same as extract_features, plus within-window motion heterogeneity
+    features (Phase 6 follow-up test)."""
+    from src.accelerometer import motion_heterogeneity_features
+    features = extract_features(bvp_raw_window, bvp_filtered_window, acc_window_g, fs_bvp, fs_acc)
+    features.update(motion_heterogeneity_features(acc_window_g))
+    return features
