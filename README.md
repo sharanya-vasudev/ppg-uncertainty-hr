@@ -16,7 +16,7 @@ Repository) — 15 subjects, synchronized wrist PPG/BVP (64 Hz), wrist accelerom
 daily-life activities. **Not included in this repo** (~2.7 GB, licensed separately)
 — see `data/README.md` for download instructions.
 
-## Status: Phases 0-5 complete
+## Status: Phases 0-10 complete
 
 **Phase 0 — Environment & structure.** Python 3.11 virtual environment, project
 structure, dependency tracking.
@@ -101,12 +101,61 @@ feature fix already produced a genuine fusion improvement with simple
 classical models - no current evidence the bottleneck is model capacity
 rather than feature design.
 
+**Phase 8 - Quantile regression.** Gradient-boosted quantile models
+(5th/95th percentile, LOSO CV) producing per-window prediction intervals:
+- Median-model point estimate: MAE 8.69 BPM
+- 90% nominal interval: empirical coverage 81.2% (overconfident), mean width
+  30.0 BPM
+- Width is informative: Spearman 0.60 with absolute error, growing from
+  ~10 BPM (sitting) to ~46 BPM (stairs)
+- Miscalibration is subject-dependent: 9 of 15 held-out subjects land between
+  0.89 and 0.93 coverage, while 6 are clearly under-covered, worst S5 (0.49)
+  and S12 (0.61) - the same subjects where fusion underperformed in Phase 6
+
+**Phase 9 - Gaussian Process regression.** Sparse variational GP (GPyTorch,
+500 inducing points), used to test whether epistemic uncertainty explains
+the S5/S12 pattern:
+- Point estimate MAE 9.46 BPM (smaller training subsample than other models)
+- Calibration crosses the diagonal: over-covers at low nominal levels
+  (50% -> 63.8%) and under-covers at high ones (95% -> 89.8%), indicating a
+  heavier-tailed real error distribution than the Gaussian assumption
+- The epistemic term does not clearly flag S5 (its value is below-median for
+  that subject); width is instead dominated by a near-constant per-fold
+  noise term, so it barely varies across subjects (40-43 BPM) or activities
+  despite true difficulty varying 5x (4-20 BPM MAE)
+- Practical conclusion: quantile regression's interval is currently more
+  useful (it adapts to context) despite the GP's more principled construction
+
+**Phase 10 - Calibration comparison.** Reliability diagram across 5 nominal
+levels (50/70/80/90/95%), see `results/figures/reliability_diagram_phase10.png`:
+- The two methods fail in different, identifiable ways: the GP's curve
+  crosses the diagonal near 80% (a shape mismatch - tails heavier than
+  Gaussian), while quantile regression's curve stays below the diagonal at
+  every level (a systematic ~7-9 point shortfall - no mechanism to widen for
+  an unfamiliar subject)
+
 ### Upcoming
-Phase 8 (uncertainty quantification: Gaussian Processes, quantile
-regression, conformal prediction) -> calibration -> motion-specific
-evaluation -> final evaluation -> paper.
+Conformal prediction (Phase 11) - tests whether a distribution-free method
+closes these gaps, while explicitly checking its exchangeability assumption
+against the subject-level distribution shift documented above -> motion-
+specific evaluation -> final evaluation -> paper.
 
 ## Repository Structure
+```
+ppg-uncertainty-hr/
+├── data/              # raw/processed data (gitignored, see data/README.md)
+├── notebooks/         # exploratory notebooks, one per phase
+├── src/               # reusable modules (config.py, data_loader.py, models.py,
+│                       # uncertainty.py, gp_model.py, etc.)
+├── scripts/           # experiment scripts
+├── docs/              # feature dictionary and other project documentation
+├── results/
+│   ├── figures/        # saved plots
+│   └── metrics/         # small summary CSVs (tracked)
+│       └── predictions/  # large per-window prediction files (gitignored,
+│                          # regenerate via the matching script)
+└── paper/              # manuscript notes
+```
 
 ## Setup
 ```bash
