@@ -16,7 +16,7 @@ Repository) — 15 subjects, synchronized wrist PPG/BVP (64 Hz), wrist accelerom
 daily-life activities. **Not included in this repo** (~2.7 GB, licensed separately)
 — see `data/README.md` for download instructions.
 
-## Status: Phases 0-10 complete
+## Status: Phases 0-11 complete (Phase 7 skipped by design)
 
 **Phase 0 — Environment & structure.** Python 3.11 virtual environment, project
 structure, dependency tracking.
@@ -134,11 +134,33 @@ levels (50/70/80/90/95%), see `results/figures/reliability_diagram_phase10.png`:
   every level (a systematic ~7-9 point shortfall - no mechanism to widen for
   an unfamiliar subject)
 
+**Phase 11 - Conformal prediction.** Conformalized quantile regression (CQR)
+on top of the Phase 8 quantile models, evaluated leave-one-subject-out,
+comparing three ways of choosing the calibration data (nominal 90% interval
+unless stated):
+- Window-level calibration (random windows from the training subjects) barely
+  helps: coverage 0.807 -> 0.835. Calibration windows resemble training
+  windows, so the base model looks better calibrated than it is on a new person.
+- Subject-level calibration with 4 held-out subjects brings pooled coverage
+  close to nominal at all five levels (0.538 / 0.723 / 0.810 / 0.893 / 0.936
+  for 50 / 70 / 80 / 90 / 95%), but the correction is unstable: q ranged from
+  0.2 to 16.4 BPM depending on which 4 subjects were drawn.
+- Leave-one-subject-out cross-conformal (all 14 other subjects calibrate) is
+  stable (q 2.5-3.8 BPM) and reaches pooled coverage 0.900, with mean width
+  30.0 -> 36.7 BPM. Its uncorrected coverage (0.812) reproduces Phase 10 exactly.
+- Coverage is marginal (an average over wearers), not per-person: even with a
+  stable q, per-subject coverage ranges from 0.56 (S5) to 0.975 (S7), with 8 of
+  15 subjects above 0.95 and 4 below 0.85; the spread across subjects barely
+  shrank (std 0.136 -> 0.115). A single global correction cannot remove
+  person-to-person differences.
+- By activity (4-subject scheme), coverage after correction ranges from 0.73
+  (stairs) to 0.95 (driving) while interval width adapts from 21 to 54 BPM.
+
 ### Upcoming
-Conformal prediction (Phase 11) - tests whether a distribution-free method
-closes these gaps, while explicitly checking its exchangeability assumption
-against the subject-level distribution shift documented above -> motion-
-specific evaluation -> final evaluation -> paper.
+Final model comparison table with parameter counts and runtime (Phase 12),
+motion-specific evaluation (Phase 13), uncertainty as a quality signal
+(Phase 14), lightweight/edge analysis (Phase 15), statistical validation
+(Phase 16) -> ablations -> robustness -> reproducibility -> paper.
 
 ## Repository Structure
 ```
