@@ -1,0 +1,25 @@
+| Model | Inputs | MAE | RMSE | r | Cov@90 | Width@90 | Parameters | Size (MB) | Train (s) | Inference (ms) | Pipeline (ms) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Spectral baseline (interpolated) | PPG | 18.33 | 30.25 | 0.388 | n/a | n/a | 0 learned (fixed filter) | 0.00 | 0 | n/a | 0.45 |
+| Ridge | PPG | 11.59 | 16.10 | 0.709 | n/a | n/a | 28 (coefficients, intercept, scaler) | 0.00 | 0 | 0.09 | 0.64 |
+| Random Forest | PPG | 9.25 | 14.96 | 0.756 | n/a | n/a | 455,576 tree nodes (100 trees) | 32.83 | 3 | 2.42 | 2.97 |
+| Gradient Boosting | PPG | 9.41 | 14.94 | 0.757 | n/a | n/a | 9,150 tree nodes (150 trees) | 0.55 | 1 | 0.43 | 0.98 |
+| Random Forest, naive fusion | PPG + all ACC | 9.85 | 16.45 | 0.702 | n/a | n/a | 437,554 tree nodes (100 trees) | 31.53 | 7 | 2.37 | 2.92 |
+| Random Forest (official Phase 6) | PPG + dynamic ACC | 8.91 | 14.35 | 0.778 | n/a | n/a | 453,656 tree nodes (100 trees) | 32.69 | 6 | 2.50 | 3.06 |
+| Gradient Boosting | PPG + dynamic ACC | 9.08 | 14.16 | 0.785 | n/a | n/a | 9,150 tree nodes (150 trees) | 0.57 | 1 | 0.42 | 0.98 |
+| Quantile regression (median, 5/95%) | PPG + dynamic ACC | 8.69 | 14.13 | 0.787 | 0.812 | 30.0 | 27,450 tree nodes (3 models) | 1.71 | 4 | 1.40 | 1.96 |
+| Sparse variational GP | PPG + dynamic ACC | 9.46 | 14.62 | 0.769 | 0.864 | 41.0 | 259,020 trainable (500 inducing points) | 2.08 | 12 | 0.59 | 1.15 |
+| Conformalized quantile regression (all-subject calibration) | PPG + dynamic ACC | 8.69 | 14.13 | 0.787 | 0.900 | 36.7 | 27,450 tree nodes (3 models) + 1 scalar (q) | 1.71 | 4 | 1.40 | 1.96 |
+| Deep fusion network | PPG + ACC | not run | not run | not run | not run | not run | not built (Phase 7 skipped by design) | not run | not run | not run | not run |
+| Deep ensemble | PPG + ACC | not run | not run | not run | not run | not run | not built (Phase 7 skipped by design) | not run | not run | not run | not run |
+
+Notes
+- MAE, RMSE (BPM) and Pearson r are pooled over 64,697 windows, leave-one-subject-out for every learned model.
+- Cov@90 and Width@90 are for a nominal 90% prediction interval (width in BPM); n/a means a point estimate only.
+- The conformalized row uses the quantile-regression median as its point estimate; only the interval differs.
+- Parameters are in each family's own unit and are NOT like-for-like; compare Size (MB), the pickled model.
+- Inference = model only; Pipeline = filtering + features + model (spectral row: filtering + FFT estimate).
+- Timing: median of 200 single-window calls, ONE CPU thread, on the development laptop (see
+  phase12_environment.txt). Models were fitted on all subjects except S1 (one example fold).
+  This is NOT wearable hardware; it shows relative cost only.
+- No significance testing yet (Phase 16).

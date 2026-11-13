@@ -40,7 +40,7 @@ for s in subjects:
     mae = np.abs(out["mean"] - test["true_hr"].values).mean()
     print(f"S{s}: train {len(train)} windows, test {len(test)}, MAE {mae:.2f} BPM, "
           f"noise sd {out['noise_std']:.2f}, mean latent sd {out['latent_std'].mean():.2f} BPM, "
-          f"loss {out['losses'][0]:.2f}->{out['losses'][-1]:.2f} (drop over last 5 epochs: {out['losses'][-6] - out['losses'][-1]:.3f}), f{time.time() - t0:.0f}s", flush=True)
+          f"loss {out['losses'][0]:.2f}->{out['losses'][-1]:.2f} (drop over last 5 epochs: {(out['losses'][-6] - out['losses'][-1]) if len(out['losses']) > 5 else float('nan'):.3f}), {time.time() - t0:.0f}s", flush=True)
 
 if SMOKE:
     print("\nSmoke test finished without errors.")

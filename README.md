@@ -16,7 +16,7 @@ Repository) — 15 subjects, synchronized wrist PPG/BVP (64 Hz), wrist accelerom
 daily-life activities. **Not included in this repo** (~2.7 GB, licensed separately)
 — see `data/README.md` for download instructions.
 
-## Status: Phases 0-11 complete (Phase 7 skipped by design)
+## Status: Phases 0-12 complete (Phase 7 skipped by design)
 
 **Phase 0 — Environment & structure.** Python 3.11 virtual environment, project
 structure, dependency tracking.
@@ -156,9 +156,45 @@ unless stated):
 - By activity (4-subject scheme), coverage after correction ranges from 0.73
   (stairs) to 0.95 (driving) while interval width adapts from 21 to 54 BPM.
 
+**Phase 12 - Final comparison.** Pooled leave-one-subject-out results over
+64,697 windows (MAE and RMSE in BPM, r = Pearson correlation; Cov@90 and
+Width@90 are for a nominal 90% prediction interval). The full table, with
+parameter counts and training time, is in results/tables/phase12_model_comparison.md.
+
+| Model | Inputs | MAE | RMSE | r | Cov@90 | Width@90 | Size (MB) | Pipeline (ms) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Spectral baseline (interpolated) | PPG | 18.33 | 30.25 | 0.388 | n/a | n/a | 0.00 | 0.45 |
+| Ridge | PPG | 11.59 | 16.10 | 0.709 | n/a | n/a | 0.00 | 0.64 |
+| Random Forest | PPG | 9.25 | 14.96 | 0.756 | n/a | n/a | 32.83 | 2.97 |
+| Gradient Boosting | PPG | 9.41 | 14.94 | 0.757 | n/a | n/a | 0.55 | 0.98 |
+| Random Forest, naive fusion | PPG + all ACC | 9.85 | 16.45 | 0.702 | n/a | n/a | 31.53 | 2.92 |
+| Random Forest (official Phase 6) | PPG + dynamic ACC | 8.91 | 14.35 | 0.778 | n/a | n/a | 32.69 | 3.06 |
+| Gradient Boosting | PPG + dynamic ACC | 9.08 | 14.16 | 0.785 | n/a | n/a | 0.57 | 0.98 |
+| Quantile regression (median, 5/95%) | PPG + dynamic ACC | 8.69 | 14.13 | 0.787 | 0.812 | 30.0 | 1.71 | 1.96 |
+| Sparse variational GP | PPG + dynamic ACC | 9.46 | 14.62 | 0.769 | 0.864 | 41.0 | 2.08 | 1.15 |
+| Conformalized quantile regression (all-subject calibration) | PPG + dynamic ACC | 8.69 | 14.13 | 0.787 | 0.900 | 36.7 | 1.71 | 1.96 |
+
+- Gradient-boosted quantile regression (median) is nominally best on all three
+  point metrics (MAE 8.69, RMSE 14.13, r 0.787). One median model is about
+  0.57 MB and under 0.5 ms per window, roughly 57x smaller and 6x faster than
+  the Random Forest (8.91 / 14.35 / 0.778, 32.7 MB). Differences between the
+  top models are small and not yet tested for significance (Phase 16).
+- At a nominal 90% interval, conformalized quantile regression (calibrated on
+  the other 14 subjects) has the best interval: coverage 0.900 at 36.7 BPM mean
+  width, against 0.864 at 41.0 BPM for the sparse GP and 0.812 at 30.0 BPM for
+  uncalibrated quantile regression.
+- Naive fusion is also the worst tree model in RMSE (16.45 vs 14.96 for
+  PPG-only); dynamic accelerometer features lower it to 14.35, so the
+  orientation-feature diagnosis holds beyond MAE. RMSE gains from fusion
+  (0.6-0.8 BPM) exceed MAE gains (0.2-0.3 BPM), consistent with fusion mostly
+  removing large errors.
+- Cost (one laptop CPU thread, one example fold, not wearable hardware):
+  filtering plus features plus model takes 0.6-3.1 ms per window against a 2 s
+  window cadence. No deep models were built (Phase 7 skipped by design), so
+  those rows are not reported.
+
 ### Upcoming
-Final model comparison table with parameter counts and runtime (Phase 12),
-motion-specific evaluation (Phase 13), uncertainty as a quality signal
+Motion-specific evaluation (Phase 13), uncertainty as a quality signal
 (Phase 14), lightweight/edge analysis (Phase 15), statistical validation
 (Phase 16) -> ablations -> robustness -> reproducibility -> paper.
 

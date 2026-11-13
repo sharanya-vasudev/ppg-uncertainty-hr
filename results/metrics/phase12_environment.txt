@@ -1,0 +1,8 @@
+platform: macOS-26.6.2-arm64-arm-64bit
+machine: arm64
+cpu_count: 8
+python: 3.11.16
+scikit-learn: 1.9.1
+torch: 2.14.0
+latency: ONE CPU thread, single window per call; training: default threads
+models fitted on all subjects except S1 (one example fold)

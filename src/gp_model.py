@@ -1,5 +1,5 @@
 """
-Sparse variational Gaussian Process regression via GPyTorch (Phase 9).
+Sparse variational Gaussian Process regression via GPyTorch (Phase 9, 12).
 
 Why "sparse variational": an exact GP needs an n x n kernel matrix and O(n^3)
 time - infeasible for ~60,000 training windows per fold. SVGP summarizes the
@@ -8,10 +8,8 @@ mini-batches, so cost per step depends on batch size and m, not on n.
 
 Predictive distribution of a NEW OBSERVATION y* at input x*:
     y* ~ Normal( mean(x*), var_latent(x*) + noise_var )
-  var_latent : uncertainty about the underlying function (epistemic; grows
-               when x* is unlike the training data)
-  noise_var  : irreducible observation noise (aleatoric; one constant for all
-               inputs in a standard GP)
+  var_latent : uncertainty about the underlying function (epistemic)
+  noise_var  : irreducible observation noise (aleatoric; one constant)
 A PREDICTION interval must include both terms.
 """
 from __future__ import annotations
@@ -41,19 +39,18 @@ class SVGPRegressor(gpytorch.models.ApproximateGP):
         )
 
 
-def fit_predict_svgp(X_train, y_train, X_test, n_inducing=500, n_epochs=40,
-                     batch_size=1024, lr=0.05, seed=42, verbose=False):
-    """Fit on the training set, predict for the test set. All standardization
-    uses TRAINING statistics only. Returns values in original BPM units."""
+def fit_svgp(X_train, y_train, n_inducing=500, n_epochs=40, batch_size=1024,
+             lr=0.05, seed=42, verbose=False):
+    """Train the GP. All standardization uses TRAINING statistics only.
+    Returns a state dict holding the fitted model and the scalers."""
     torch.manual_seed(seed)
     rng = np.random.default_rng(seed)
 
     x_mean, x_std = X_train.mean(axis=0), X_train.std(axis=0) + 1e-8
-    y_mean, y_std = y_train.mean(), y_train.std()
+    y_mean, y_std = float(y_train.mean()), float(y_train.std())
     dtype = torch.float64  # float64 avoids Cholesky failures common in float32
     Xtr = torch.tensor((X_train - x_mean) / x_std, dtype=dtype)
     ytr = torch.tensor((y_train - y_mean) / y_std, dtype=dtype)
-    Xte = torch.tensor((X_test - x_mean) / x_std, dtype=dtype)
 
     idx = rng.choice(len(Xtr), size=min(n_inducing, len(Xtr)), replace=False)
     model = SVGPRegressor(Xtr[idx].clone()).double()
@@ -82,20 +79,34 @@ def fit_predict_svgp(X_train, y_train, X_test, n_inducing=500, n_epochs=40,
 
     model.eval()
     likelihood.eval()
+    return {"model": model, "likelihood": likelihood, "x_mean": x_mean, "x_std": x_std,
+            "y_mean": y_mean, "y_std": y_std, "losses": losses}
+
+
+def predict_svgp(state, X_test, batch=1024):
+    """Predict with a fitted state. Returns values in original BPM units."""
+    Xte = torch.tensor((X_test - state["x_mean"]) / state["x_std"], dtype=torch.float64)
     means, latent_vars = [], []
     with torch.no_grad():
-        for i in range(0, len(Xte), 1024):
-            latent = model(Xte[i:i + 1024])
+        for i in range(0, len(Xte), batch):
+            latent = state["model"](Xte[i:i + batch])
             means.append(latent.mean)
             latent_vars.append(latent.variance)
     mean_z = torch.cat(means).numpy()
     latent_var_z = torch.cat(latent_vars).numpy()
-    noise_var_z = float(likelihood.noise.item())
-
+    noise_var_z = float(state["likelihood"].noise.item())
+    y_std, y_mean = state["y_std"], state["y_mean"]
     return {
         "mean": mean_z * y_std + y_mean,
         "latent_std": np.sqrt(latent_var_z) * y_std,
         "noise_std": float(np.sqrt(noise_var_z) * y_std),
         "total_std": np.sqrt(latent_var_z + noise_var_z) * y_std,
-        "losses": losses,
     }
+
+
+def fit_predict_svgp(X_train, y_train, X_test, **kwargs):
+    """Backward-compatible wrapper used by scripts/run_gp.py."""
+    state = fit_svgp(X_train, y_train, **kwargs)
+    out = predict_svgp(state, X_test)
+    out["losses"] = state["losses"]
+    return out
