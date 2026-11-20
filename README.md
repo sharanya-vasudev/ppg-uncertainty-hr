@@ -16,7 +16,7 @@ Repository) — 15 subjects, synchronized wrist PPG/BVP (64 Hz), wrist accelerom
 daily-life activities. **Not included in this repo** (~2.7 GB, licensed separately)
 — see `data/README.md` for download instructions.
 
-## Status: Phases 0-12 complete (Phase 7 skipped by design)
+## Status: Phases 0-13 complete (Phase 7 skipped by design)
 
 **Phase 0 — Environment & structure.** Python 3.11 virtual environment, project
 structure, dependency tracking.
@@ -193,10 +193,57 @@ parameter counts and training time, is in results/tables/phase12_model_compariso
   window cadence. No deep models were built (Phase 7 skipped by design), so
   those rows are not reported.
 
+**Phase 13 - Motion-specific evaluation.** Primary configuration (quantile-regression
+median plus a conformal 90% interval, leave-one-subject-out), reported by
+condition and by accelerometer RMS bin. PPG-DaLiA contains no running, so that
+condition from the original plan cannot be evaluated here. cov_raw and cov_conf
+are coverage of the nominal 90% interval before and after conformal correction,
+cov_conf_no_S5_S12 repeats the corrected coverage without subjects S5 and S12
+(chosen in advance), width is in BPM, and worst_subject_cov is the lowest
+per-subject corrected coverage in that condition. Full tables are in
+results/metrics/phase13_*.csv and the figure is
+results/figures/phase13_motion_specific.png.
+
+| condition | n | MAE | cov_raw | cov_conf | cov_conf_no_S5_S12 | width | width_over_MAE | worst_subject_cov |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| rest | 13066 | 4.424 | 0.826 | 0.943 | 0.968 | 22.629 | 5.115 | 0.749 |
+| seated_daily | 20397 | 6.325 | 0.846 | 0.939 | 0.961 | 31.672 | 5.008 | 0.733 |
+| transient | 17515 | 10.613 | 0.807 | 0.876 | 0.93 | 43.847 | 4.131 | 0.421 |
+| walking | 4697 | 11.408 | 0.796 | 0.856 | 0.916 | 49.853 | 4.37 | 0.244 |
+| cycling | 3473 | 11.65 | 0.758 | 0.863 | 0.905 | 41.933 | 3.599 | 0.172 |
+| high_motion | 5549 | 17.206 | 0.722 | 0.792 | 0.845 | 51.16 | 2.973 | 0.144 |
+
+| motion_bin | n | MAE | cov_raw | cov_conf | cov_conf_no_S5_S12 | width | width_over_MAE | worst_subject_cov |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| <1.00 g | 10810 | 3.706 | 0.849 | 0.956 | 0.972 | 20.458 | 5.52 | 0.825 |
+| 1.00-1.02 g | 19996 | 5.763 | 0.83 | 0.935 | 0.957 | 27.897 | 4.84 | 0.689 |
+| 1.02-1.06 g | 13901 | 9.903 | 0.815 | 0.894 | 0.943 | 42.472 | 4.289 | 0.492 |
+| 1.06-1.15 g | 13404 | 13.746 | 0.784 | 0.841 | 0.911 | 52.88 | 3.847 | 0.264 |
+| >1.15 g | 6586 | 12.906 | 0.748 | 0.835 | 0.868 | 44.815 | 3.472 | 0.239 |
+
+- Uncertainty moves in the right direction: rank agreement between interval
+  width and MAE is 0.90 across the nine activities and 1.00 across the five
+  motion bins, and coverage falls monotonically with accelerometer RMS
+  (0.956 -> 0.835).
+- It does not move enough: width grows 2.3-3.1x from the easiest to the hardest
+  conditions while MAE grows 3.9-5.8x, so width/MAE falls from about 5.1 at rest
+  to 3.0 for high-motion activities (2.6 for stairs; about 4.1 would be expected
+  for correct Gaussian intervals). Easy conditions are over-covered (0.93-0.95)
+  and the hardest under-covered (stairs 0.74).
+- Part of the shortfall is a two-subject effect: excluding S5 and S12 lifts
+  coverage by 4-6 points and brings walking (0.916), cycling (0.905) and table
+  soccer (0.922) to nominal, while stairs (0.788) and the >1.15 g bin (0.868)
+  stay below it.
+- Pooled coverage hides individual failure: in motion conditions the worst
+  single subject's corrected coverage is 0.11-0.25 (stairs 0.11, walking 0.24)
+  against pooled 0.74-0.86.
+- Rank agreement across 5-9 conditions is descriptive, not a significance test
+  (Phase 16); the RMS bins use Phase 4 thresholds found on the same data.
+
 ### Upcoming
-Motion-specific evaluation (Phase 13), uncertainty as a quality signal
-(Phase 14), lightweight/edge analysis (Phase 15), statistical validation
-(Phase 16) -> ablations -> robustness -> reproducibility -> paper.
+Uncertainty as a quality signal (Phase 14), lightweight/edge analysis
+(Phase 15), statistical validation (Phase 16) -> ablations -> robustness ->
+reproducibility -> paper.
 
 ## Repository Structure
 ```
