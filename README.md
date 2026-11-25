@@ -16,7 +16,7 @@ Repository) — 15 subjects, synchronized wrist PPG/BVP (64 Hz), wrist accelerom
 daily-life activities. **Not included in this repo** (~2.7 GB, licensed separately)
 — see `data/README.md` for download instructions.
 
-## Status: Phases 0-13 complete (Phase 7 skipped by design)
+## Status: Phases 0-14 complete (Phase 7 skipped by design)
 
 **Phase 0 — Environment & structure.** Python 3.11 virtual environment, project
 structure, dependency tracking.
@@ -230,20 +230,72 @@ results/figures/phase13_motion_specific.png.
   to 3.0 for high-motion activities (2.6 for stairs; about 4.1 would be expected
   for correct Gaussian intervals). Easy conditions are over-covered (0.93-0.95)
   and the hardest under-covered (stairs 0.74).
-- Part of the shortfall is a two-subject effect: excluding S5 and S12 lifts
-  coverage by 4-6 points and brings walking (0.916), cycling (0.905) and table
-  soccer (0.922) to nominal, while stairs (0.788) and the >1.15 g bin (0.868)
-  stay below it.
+- Part of the shortfall comes from a few subjects, chiefly S5 (the worst subject
+  in every motion activity, with coverage 0.11-0.24 against 0.46-0.71 for the
+  next worst): excluding S5 and S12 lifts coverage by 4-6 points and brings
+  walking (0.916), cycling (0.905) and table soccer (0.922) to nominal, while
+  stairs (0.788) and the >1.15 g bin (0.868) stay below it.
 - Pooled coverage hides individual failure: in motion conditions the worst
   single subject's corrected coverage is 0.11-0.25 (stairs 0.11, walking 0.24)
   against pooled 0.74-0.86.
 - Rank agreement across 5-9 conditions is descriptive, not a significance test
   (Phase 16); the RMS bins use Phase 4 thresholds found on the same data.
 
+**Phase 14 - Uncertainty as a quality signal.** Does the interval width of the
+primary configuration (the 5th-95th percentile quantile interval) rank which
+windows are likely to be wrong, and does it beat free alternatives? Controls:
+accelerometer RMS alone, PPG signal-quality index alone, an oracle that
+withholds by true error, and random withholding. Spearman correlations are
+descriptive (consecutive windows overlap by 75%); subject-level bootstrap
+intervals follow in Phase 16. Table 1 gives the MAE (BPM) of the windows that
+remain when the least-trusted share is withheld, and cov_width is the conformal
+90% coverage of the windows kept when ranking by width.
+
+Table 1.
+
+| retained | MAE_random | MAE_width | MAE_acc_rms | MAE_ppg_sqi | MAE_oracle | cov_width |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1.0 | 8.69 | 8.69 | 8.69 | 8.69 | 8.69 | 0.9 |
+| 0.9 | 8.69 | 7.615 | 8.217 | 8.398 | 5.673 | 0.904 |
+| 0.8 | 8.69 | 6.619 | 7.647 | 8.157 | 4.133 | 0.912 |
+| 0.7 | 8.69 | 5.664 | 6.669 | 7.949 | 3.096 | 0.92 |
+| 0.6 | 8.69 | 4.744 | 5.621 | 7.68 | 2.344 | 0.932 |
+| 0.5 | 8.69 | 3.801 | 5.09 | 7.31 | 1.767 | 0.948 |
+
+Table 2.
+
+| label | n | MAE | cov_conf | width_conf |
+| --- | --- | --- | --- | --- |
+| Low | 21566 | 2.443 | 0.972 | 16.066 |
+| Medium | 21565 | 8.284 | 0.875 | 35.207 |
+| High | 21566 | 15.343 | 0.853 | 58.779 |
+
+- Rank agreement with absolute error: pooled Spearman 0.599 for width
+  (accelerometer RMS 0.387, PPG quality -0.245). Within each subject the median
+  is 0.550 (RMS 0.337, quality -0.208) and width beats RMS in all 15 subjects.
+  Within each activity the median is 0.535 (RMS 0.209, quality -0.175), with
+  width beating RMS in 8 of 9 activities. Agreement is weakest in the hardest
+  activities (stairs 0.266, walking 0.293, table soccer 0.342).
+- Selective prediction (Table 1): withholding the least-trusted 20% of windows
+  by width lowers MAE from 8.69 to 6.62 BPM (-24%), and withholding half
+  reaches 3.80 BPM. Width captures 0.553 of an oracle's improvement over
+  50-100% retention, against 0.373 for accelerometer RMS and 0.145 for PPG
+  quality. Conformal coverage of the retained windows rises only modestly
+  (0.900 -> 0.912 at 80% retention).
+- One fixed rule for everyone (withhold width above 48.1 BPM, the pooled 80th
+  percentile): every subject's MAE improves, but it does not rescue the worst
+  wearer: S5 keeps MAE 17.5 BPM and coverage 0.595 after 32% of its windows
+  are withheld.
+- Low / Medium / High labels from width tertiles (cut points 17.6 and 39.5 BPM,
+  Table 2) separate error strongly (MAE 2.4 / 8.3 / 15.3 BPM) but not the
+  coverage target: the nominal 90% interval covers 0.972 / 0.875 / 0.853.
+- Reading: width ranks windows well within a wearer and beats both free
+  controls, but its absolute scale is not reliable across wearers.
+
 ### Upcoming
-Uncertainty as a quality signal (Phase 14), lightweight/edge analysis
-(Phase 15), statistical validation (Phase 16) -> ablations -> robustness ->
-reproducibility -> paper.
+Lightweight/edge analysis (Phase 15), statistical validation (Phase 16),
+ablations (Phase 17), robustness (Phase 18), reproducibility (Phase 19),
+publication figures (Phase 20) -> manuscript (Phase 21).
 
 ## Repository Structure
 ```
